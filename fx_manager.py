@@ -4,10 +4,13 @@ import os
 import time
 import xml.etree.ElementTree as ET
 from datetime import datetime
+
 import requests
+
 import config
 
 logger = logging.getLogger(__name__)
+
 
 class FXRateManager:
     def __init__(self):

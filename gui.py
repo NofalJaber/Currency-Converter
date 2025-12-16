@@ -23,7 +23,8 @@ class CurrencyConverterApp:
         main_frame.pack(fill=tk.BOTH, expand=True)
 
         # Title
-        ttk.Label(main_frame, text="Currency Converter", style="Header.TLabel").grid(row=0, column=0, columnspan=2, pady=(0, 20))
+        ttk.Label(main_frame, text="Currency Converter", style="Header.TLabel").grid(row=0, column=0, columnspan=2,
+                                                                                     pady=(0, 20))
 
         # Amount Input
         ttk.Label(main_frame, text="Amount:").grid(row=1, column=0, sticky="w")
@@ -52,7 +53,8 @@ class CurrencyConverterApp:
         ttk.Separator(main_frame, orient='horizontal').grid(row=6, column=0, columnspan=2, sticky="ew", pady=10)
 
         # Footer (Refresh & Status)
-        self.btn_refresh = ttk.Button(main_frame, text="Refresh Rates", command=lambda: self.start_refresh_thread(force_network=True))
+        self.btn_refresh = ttk.Button(main_frame, text="Refresh Rates",
+                                      command=lambda: self.start_refresh_thread(force_network=True))
         self.btn_refresh.grid(row=7, column=0, sticky="w")
 
         self.lbl_status = ttk.Label(main_frame, text="Last update: N/A", font=('Helvetica', 8))
