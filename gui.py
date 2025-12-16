@@ -8,8 +8,8 @@ from fx_manager import FXRateManager
 class CurrencyConverterApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("BNR Currency Converter")
-        self.root.geometry("400x350")
+        self.root.title("Currency Converter")
+        self.root.geometry("400x400")
         self.manager = FXRateManager()
 
         # Styles
@@ -52,7 +52,7 @@ class CurrencyConverterApp:
         ttk.Separator(main_frame, orient='horizontal').grid(row=6, column=0, columnspan=2, sticky="ew", pady=10)
 
         # Footer (Refresh & Status)
-        self.btn_refresh = ttk.Button(main_frame, text="Refresh Rates", command=self.start_refresh_thread)
+        self.btn_refresh = ttk.Button(main_frame, text="Refresh Rates", command=lambda: self.start_refresh_thread(force_network=True))
         self.btn_refresh.grid(row=7, column=0, sticky="w")
 
         self.lbl_status = ttk.Label(main_frame, text="Last update: N/A", font=('Helvetica', 8))
@@ -61,19 +61,19 @@ class CurrencyConverterApp:
         # Grid
         main_frame.columnconfigure(1, weight=1)
 
-        self.start_refresh_thread()
+        self.start_refresh_thread(force_network=False)
 
-    def start_refresh_thread(self):
+    def start_refresh_thread(self, force_network=False):
         # Background thread for network request
         self.btn_refresh.config(state="disabled", text="Updating...")
-        thread = threading.Thread(target=self.refresh_data)
+        thread = threading.Thread(target=self.refresh_data(force_network=force_network))
         thread.daemon = True
         thread.start()
 
-    def refresh_data(self):
+    def refresh_data(self, force_network):
         # Background task to fetch data
         try:
-            is_online = self.manager.refresh_rates()
+            is_online = self.manager.refresh_rates(force_network=force_network)
             self.root.after(0, lambda: self.update_ui_after_refresh(is_online, None))
         except Exception as e:
             self.root.after(0, lambda: self.update_ui_after_refresh(False, str(e)))
@@ -102,13 +102,28 @@ class CurrencyConverterApp:
         self.lbl_status.config(text=f"Last update: {timestamp} [{source_text}]", foreground=color)
 
     def on_convert(self):
+        amount_str = self.amount_var.get().strip()
+
+        # Check if input is a valid float
         try:
-            amt = float(self.amount_var.get())
+            amount = float(amount_str)
+            if amount < 0:
+                raise ValueError("Negative number")
+
+        except ValueError:
+            messagebox.showwarning("Invalid Input", "Please enter a valid positive number to convert.")
+            return
+
+        try:
             from_currency = self.from_currency.get()
             to_currency = self.to_currency.get()
 
-            res = self.manager.convert(amt, from_currency, to_currency)
-            self.lbl_result.config(text=f"{amt} {from_currency} = {res} {to_currency}")
+            if not from_currency or not to_currency:
+                messagebox.showwarning("Selection Missing", "Please select both currencies.")
+                return
+
+            amount_converted = self.manager.convert(amount, from_currency, to_currency)
+            self.lbl_result.config(text=f"{amount} {from_currency} = {amount_converted} {to_currency}")
 
         except Exception as e:
             messagebox.showerror("Error", str(e))

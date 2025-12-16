@@ -1,12 +1,10 @@
 import json
+import logging
 import os
 import time
 import xml.etree.ElementTree as ET
 from datetime import datetime
-
-import logging
 import requests
-
 import config
 
 logger = logging.getLogger(__name__)
@@ -71,8 +69,20 @@ class FXRateManager:
         except (Exception, json.JSONDecodeError):
             return None
 
-    # Try Network, if not, get rates from local cache
-    def refresh_rates(self):
+    # Try Network if forced, else, get rates from local cache (if newer than 24h)
+    def refresh_rates(self, force_network=False):
+        cached_data = self.load_from_cache()
+        cache_age = float('inf')
+
+        if cached_data:
+            fetched_at = cached_data.get('fetched_at_epoch', 0)
+            cache_age = time.time() - fetched_at
+
+        if not force_network and cached_data and cache_age < 86400:  # 24 hours
+            self.rates = cached_data['rates']
+            self.timestamp = cached_data['timestamp']
+            return False  # False indicates "Not Online"
+
         try:
             response = requests.get(config.BNR_XML_URL, timeout=10)
             response.raise_for_status()
@@ -81,17 +91,16 @@ class FXRateManager:
                 self.save_to_cache(data)
                 self.rates = data['rates']
                 self.timestamp = data['timestamp']
-                return True
+                return True  # True indicates "Online"
 
         except requests.exceptions.RequestException as e:
             logger.error(f"Network error: {e}")
 
-        data = self.load_from_cache()
-
-        if data:
-            self.rates = data['rates']
-            self.timestamp = data['timestamp']
-            return False
+        # Fallback to cache if network failed
+        if cached_data:
+            self.rates = cached_data['rates']
+            self.timestamp = cached_data['timestamp']
+            return False  # Used cache (fallback)
 
         raise RuntimeError("Could not fetch rates and no cache available.")
 
